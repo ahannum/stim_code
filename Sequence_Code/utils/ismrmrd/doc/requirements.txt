@@ -1,0 +1,5 @@
+myst-parser
+sphinx==6.2.1
+breathe
+sphinx-rtd-theme
+sphinxcontrib-mermaid
