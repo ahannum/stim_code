@@ -1,5 +1,0 @@
-boost:
-    - 1.76.0
-    - 1.80.0
-pin_run_as_build:
-    boost: x.x
