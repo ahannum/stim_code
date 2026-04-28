@@ -1,8 +1,8 @@
 # Stim-CODE: PNS and CNS Constraint-Optimized Diffusion Encoding
 
-Stim-CODE extends the [GrOpt](https://github.com/cmr-group/gropt-dev/tree/main/gropt) toolbox to enable **peripheral nerve stimulation (PNS)** and **central nervous system (CNS)** constraint–optimized diffusion-encoding waveform design.
+Stim-CODE extends the [GrOpt](https://github.com/cmr-group/gropt-dev/tree/main/gropt) toolbox to enable **peripheral nerve stimulation (PNS)** and **cardiac nerve stimulation (CNS)** constraint–optimized diffusion-encoding waveform design.
 
-It provides tools for generating diffusion gradients that satisfy hardware limits while explicitly accounting for bioelectric safety constraints.
+It provides tools for generating diffusion-encoding gradients in MRI that satisfy hardware, sequence, and physiological constraints. The SAFE model (Hebrank, ISMRM, 2000) is incorporated to provide vendor-specific PNS/CNS response. 
 
 ---
 
