@@ -22,7 +22,7 @@ Make sure GrOpt is installed and accessible in your Python environment before us
 A step-by-step demonstration is available:
 
 - Jupyter notebook: `Examples/demo.ipynb`  
-- Google Colab (interactive): *[add link here]*
+- Google Colab (interactive): [Open in Colab](https://colab.research.google.com/github/ahannum/stim_code/blob/main/Examples/demo_colab.ipynb)
 
 The demo walks through:
 - Generating diffusion-encoding waveforms  
