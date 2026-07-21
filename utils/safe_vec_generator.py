@@ -51,6 +51,11 @@ class PNSCNS_SequenceBuilder:
         self.TE = TE
         self.n_repeats = n_repeats
 
+        if self.n_repeats < 1:
+            raise ValueError("n_repeats must be at least 1")
+
+        # if safe_params_cardiac is None, we will only compute PNS and skip CNS
+      
         # -----------------------------
         # Load data and interpolate
         # -----------------------------
@@ -244,7 +249,7 @@ class PNSCNS_SequenceBuilder:
         self.Gy_seq_full = np.tile(self.Gy_seq, n)
         self.Gz_seq_full = np.tile(self.Gz_seq, n)
         self.RF_seq_full = np.tile(self.RF_seq, n)
-        self.t_seq_full  = np.tile(self.t_seq, n)
+        self.t_seq_full = np.arange(self.Gx_seq_full.size) * self.dt_in
 
 
     # ----------------------------------------------------------
@@ -280,9 +285,11 @@ class PNSCNS_SequenceBuilder:
         # Total length up to end of zeros_delayTE2
         idx_end_TE2 = len_FAT + len_RF90 + len_z1 + len_RF180 + len_z2 #+ len_EPI
 
-        # Index of RF90 center relative to full sequence
-        start = len_FAT + self.i_center_90
-        end   = idx_end_TE2
+        # Use preceding repetitions as warm-up, then return the requested
+        # interval from the final repetition.
+        repetition_offset = (self.n_repeats - 1) * len(self.Gx_seq)
+        start = repetition_offset + len_FAT + self.i_center_90
+        end = repetition_offset + idx_end_TE2
 
         # Truncate sequences
         self.Gx_trunc = self.Gx_seq_full[start:end]

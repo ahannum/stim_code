@@ -1,6 +1,5 @@
 import numpy as np
 import gropt  # for b-value and SAFE/PNS evaluation
-import gc
 
 """
 Updated Version should use this one now 
@@ -85,7 +84,6 @@ def compute_bvalue(G, dt, TE, gamma=267.522190e6):
 
 import numpy as np
 import gropt  # for b-value and SAFE/PNS evaluation
-import gc
 
 class GetMinTE_Trap:
     """
@@ -655,15 +653,6 @@ class GetMinTE_Trap:
                     
                     return TE, g_scaled, t, b_fixed, timings_out
                 
-                if not (pns_ok and cns_ok):
-                    #print(f"Tried fixed TE and scaling b_fixed = {new_b:.2f} but safety check FAILED")
-                    # Check if variables exist and delete them
-                    for var_name in ['g', 't', 'diffGrad', 'diffGrad_cand', 'g_test', 'g_best', 'g_scaled']:
-                        if var_name in locals():
-                            del locals()[var_name]
-
- 
-                               
             if iteration % 20 == 0:
                 print('Starting TE sweep with TE={:.2f} ms'.format(TE*1e3))
             
@@ -713,11 +702,6 @@ class GetMinTE_Trap:
                             valid_results.append((TE_test, gmax, smax, g_scaled, new_b, timings_cand, idle_pre_cand, idle_post_diff_cand))
                             print(f"\tValid candidate (after scaling) gmax={gmax:.3f} smax={smax:.3f}  b={new_b:.2f} TE={TE_test*1e3:.2f} ms")
 
-                    
-                    for var_name in ['g', 't', 'diffGrad', 'diffGrad_cand', 'g_test', 'g_best', 'g_scaled']:
-                        if var_name in locals():
-                            del locals()[var_name]
-
             if valid_results:
                 best = min(valid_results, key=lambda x: (x[0], abs(x[4] - self.targetBval)))  # choose min TE and then closest bval
                 TE_best, gmax_b, smax_b, g_best, b_best, timings_best, idle_pre_best, idle_post_best = best
@@ -753,14 +737,6 @@ class GetMinTE_Trap:
                 print(timings_out.keys())
                 return TE_best, g_best, t_best, b_best, timings_out
 
-           
-            # Check if variables exist and delete them
-            for var_name in ['g', 't', 'diffGrad', 'diffGrad_cand', 'g_test', 'g_best', 'g_scaled']:
-                if var_name in locals():
-                    del locals()[var_name]
-
-            
-            gc.collect()        # force garbage collection
             TE += gradRasterTime*2 
 
         raise RuntimeError("No valid TE found within maxTE.")
@@ -888,11 +864,6 @@ class GetMinTE_Trap:
                         if pns_ok and cns_ok:
                             valid_results.append((TE_test, gmax, smax, g_scaled, new_b, timings_cand, idle_pre_cand, idle_post_diff_cand))
 
-                    # cleanup
-                    for var_name in ['g_test', 'diffGrad_cand', 'g_scaled']:
-                        if var_name in locals():
-                            del locals()[var_name]
-
             # -------------------------------------
             # Pick best candidate for this TE
             # -------------------------------------
@@ -924,9 +895,6 @@ class GetMinTE_Trap:
             else:
                 # TE too small: increase
                 TE_low = TE + gradRasterTime
-
-            # cleanup memory
-            gc.collect()
 
         if TE_best is None:
             raise RuntimeError("No valid TE found within maxTE.")
