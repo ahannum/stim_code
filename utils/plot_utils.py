@@ -108,52 +108,62 @@ def plot_waves(
 
 
     
-    if not isinstance(params['pns_lim'], (int, float)): 
+    if params.get('pns_lim') is not None and not isinstance(params.get('pns_lim'), (int, float)): 
         pns_lim = np.max(params['pns_lim'])
         stim_vec = params['pns_lim']
         # ensure stim_vec is same length as time base
         stim_vec = match_constraint_to_timebase(stim_vec, dt, TE, params['T_readout'])
 
-    if not isinstance(params['cns_lim'], (int, float)): 
+    # check if cns_lim is none first 
+    if params.get('cns_lim') is not None and not isinstance(params.get('cns_lim'), (int, float)): 
         cns_lim = np.max(params['cns_lim'])
         stim_vec_cns = params['cns_lim']
         # ensure stim_vec_cns is same length as time base
         stim_vec_cns = match_constraint_to_timebase(stim_vec_cns, dt, TE, params['T_readout'])
     
-    if isinstance(params['pns_lim'], (int, float)) and timings_file is not None and waveforms_file is not None:
-        seq = PNSCNS_SequenceBuilder(
+    has_sequence_files = timings_file is not None and waveforms_file is not None
+    pns_uses_sequence = (
+        has_sequence_files
+        and params.get('pns_params') is not None
+        and isinstance(params.get('pns_lim'), (int, float))
+    )
+    cns_uses_sequence = (
+        has_sequence_files
+        and params.get('cns_params') is not None
+        and isinstance(params.get('cns_lim'), (int, float))
+    )
+
+    sequence = None
+    if pns_uses_sequence or cns_uses_sequence:
+        base_safe_params = params.get('pns_params')
+        if base_safe_params is None:
+            base_safe_params = params['cns_params']
+
+        sequence = PNSCNS_SequenceBuilder(
             timing_file=timings_file,
             waveform_file=waveforms_file,
             dt_in=1e-5,
             dt_out=dt,
-            safe_params=params['pns_params'],
-            safe_params_cardiac=params['cns_params'],
+            safe_params=base_safe_params,
+            safe_params_cardiac=params.get('cns_params') if cns_uses_sequence else None,
             TE=TE,
             n_repeats=seq_repeats,
         )
-        pns_x = (1 - seq.safe_gx_out) * params['pns_lim']
-        pns_y = (1 - seq.safe_gy_out) * params['pns_lim']
-        pns_z = (1 - seq.safe_gz_out) * params['pns_lim']
+
+    if pns_uses_sequence:
+        pns_x = (1 - sequence.safe_gx_out) * params['pns_lim']
+        pns_y = (1 - sequence.safe_gy_out) * params['pns_lim']
+        pns_z = (1 - sequence.safe_gz_out) * params['pns_lim']
         stim_vec_pns = [pns_x, pns_y, pns_z]
         stim_vec = []
         for i in range(3):
             stim_vec.append(match_constraint_to_timebase(stim_vec_pns[i], dt, TE, params['T_readout']))
         stim_vec = np.array(stim_vec)
         
-    if isinstance(params['cns_lim'], (int, float)) and timings_file is not None and waveforms_file is not None:
-        seq = PNSCNS_SequenceBuilder(
-            timing_file=timings_file,
-            waveform_file=waveforms_file,
-            dt_in=1e-5,
-            dt_out=dt,
-            safe_params=params['pns_params'],
-            safe_params_cardiac=params['cns_params'],
-            TE=TE,
-            n_repeats=seq_repeats,
-        )
-        cns_x = (1 - seq.safe_cardiac_gx_out) * params['cns_lim']
-        cns_y = (1 - seq.safe_cardiac_gy_out) * params['cns_lim']
-        cns_z = (1 - seq.safe_cardiac_gz_out) * params['cns_lim']
+    if cns_uses_sequence:
+        cns_x = (1 - sequence.safe_cardiac_gx_out) * params['cns_lim']
+        cns_y = (1 - sequence.safe_cardiac_gy_out) * params['cns_lim']
+        cns_z = (1 - sequence.safe_cardiac_gz_out) * params['cns_lim']
         stim_vec_cns_tmp = [cns_x, cns_y, cns_z]
         stim_vec_cns = []
         for i in range(3):
@@ -161,9 +171,13 @@ def plot_waves(
         stim_vec_cns = np.array(stim_vec_cns)
 
     if pns_lim == 0:
-        pns_lim = params.get('pns_lim', 0.0)
+        pns_lim = params.get('pns_lim')
+        if pns_lim is None:
+            pns_lim = 0.0
     if cns_lim == 0:
-        cns_lim = params.get('cns_lim', 0.0)
+        cns_lim = params.get('cns_lim')
+        if cns_lim is None:
+            cns_lim = 0.0
 
 
     if pns_params is None or cns_params is None:
@@ -315,6 +329,7 @@ def plot_waves(
             if pns_lim > 0:
                 ax.axhline(pns_lim, linestyle=':', color='r', alpha=0.7)
 
+            ax.set_ylim(0,1.05)
             ax.set_title('PNS (SAFE)')
             ax.set_xlabel('t [ms]')
             ax.legend(loc='lower left')
@@ -346,6 +361,7 @@ def plot_waves(
             ax.set_title('CNS (SAFE)')
             ax.set_xlabel('t [ms]')
             ax.legend(loc='lower left')
+            ax.set_ylim(0,1.05)
         elif plot_type == 'eddy':
             all_lam = np.linspace(0.1, 120, 1000)
             all_e = []
@@ -367,6 +383,7 @@ def plot_waves(
             ax.set_title('Eddy Spectrum')
             ax.set_xlabel('lambda [ms]')
             ax.set_ylabel('eddy spectrum [a.u.]')
+            
 
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)

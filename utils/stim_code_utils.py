@@ -167,6 +167,17 @@ def _diff_solve_TE(
     for _i_moment in range(params['MMT'] + 1):
         gparams.add_moment(_i_moment, 0.0, start_idx=start_idx, tol=moment_tol)
 
+
+    if 'do_spoil' in params:
+        if 'spoil_min' in params:
+            spoil_min = params['spoil_min']
+        else:             
+            spoil_min = 10
+
+        # try for, in mT/m * ms, 70.5, 46 75/1.51
+        gparams.add_moment(0,1000+spoil_min, tol = 1000, stop_idx = int(np.round((TE/2)/gparams.dt))) 
+
+        
     # dEfault to first axis if you dont specify which pns or cns idx
     if params.get('cns_idx') is None:
         params['cns_idx'] = [0]
@@ -174,7 +185,36 @@ def _diff_solve_TE(
     if params.get('pns_idx') is None:
         params['pns_idx'] = [0]
 
-    if 'pns_lim' in params:
+    has_sequence_files = waveforms_file is not None and timings_file is not None
+    pns_uses_sequence = (
+        has_sequence_files
+        and params.get('pns_params') is not None
+        and isinstance(params.get('pns_lim'), (int, float))
+    )
+    cns_uses_sequence = (
+        has_sequence_files
+        and params.get('cns_params') is not None
+        and isinstance(params.get('cns_lim'), (int, float))
+    )
+
+    sequence = None
+    if pns_uses_sequence or cns_uses_sequence:
+        base_safe_params = params.get('pns_params')
+        if base_safe_params is None:
+            base_safe_params = params['cns_params']
+
+        sequence = PNSCNS_SequenceBuilder(
+            timing_file=timings_file,
+            waveform_file=waveforms_file,
+            dt_in=1e-5,
+            dt_out=dt,
+            safe_params=base_safe_params,
+            safe_params_cardiac=params.get('cns_params') if cns_uses_sequence else None,
+            TE=TE,
+            n_repeats=seq_repeats,
+        )
+
+    if params.get('pns_lim') is not None:
         if 'pns_params' in params:
             # check if pns_lim is a number or an array
             # if array, assume vector constraint
@@ -185,23 +225,14 @@ def _diff_solve_TE(
                     gparams.add_SAFE_vec(pns_lim, safe_params=params['pns_params'],new_first_axis = i)
             
             
+            
             # add constant value constraint if pns_lim is a scalar or custom envelope based on sequence timings
             else:
                 # check if waveforms_file and timings_file are provided, if so use them to construct a custom envelope constraint
-                if waveforms_file is not None and timings_file is not None:
-                    seq = PNSCNS_SequenceBuilder(
-                        timing_file=timings_file,
-                        waveform_file=waveforms_file,
-                        dt_in=1e-5,
-                        dt_out=dt,
-                        safe_params=params['pns_params'],
-                        safe_params_cardiac=params['cns_params'],
-                        TE=TE,
-                        n_repeats=seq_repeats,
-                    )
-                    pns_x = (1 - seq.safe_gx_out) * params['pns_lim']
-                    pns_y = (1 - seq.safe_gy_out) * params['pns_lim']
-                    pns_z = (1 - seq.safe_gz_out) * params['pns_lim']
+                if pns_uses_sequence:
+                    pns_x = (1 - sequence.safe_gx_out) * params['pns_lim']
+                    pns_y = (1 - sequence.safe_gy_out) * params['pns_lim']
+                    pns_z = (1 - sequence.safe_gz_out) * params['pns_lim']
                     stim_vec_pns = [pns_x, pns_y, pns_z]
 
                     for i in params['pns_idx']:
@@ -218,7 +249,7 @@ def _diff_solve_TE(
             for i in params['pns_idx']:
                 gparams.add_SAFE(params['pns_lim'], safe_params=pns_params, new_first_axis = i)
 
-    if 'cns_lim' in params:
+    if params.get('cns_lim') is not None:
         if 'cns_params' in params:
             # check if cns_lim is a number or an array
             # if array, assume vector constraint
@@ -230,20 +261,10 @@ def _diff_solve_TE(
             # add constant value constraint if cns_lim is a scalar
             else:
                 # check if waveforms_file and timings_file are provided, if so use them to construct a custom envelope constraint
-                if waveforms_file is not None and timings_file is not None:
-                    seq = PNSCNS_SequenceBuilder(
-                        timing_file=timings_file,
-                        waveform_file=waveforms_file,
-                        dt_in=1e-5,
-                        dt_out=dt,
-                        safe_params=params['pns_params'],
-                        safe_params_cardiac=params['cns_params'],
-                        TE=TE,
-                        n_repeats=seq_repeats,
-                    )
-                    cns_x = (1 - seq.safe_cardiac_gx_out) * params['cns_lim']
-                    cns_y = (1 - seq.safe_cardiac_gy_out) * params['cns_lim']
-                    cns_z = (1 - seq.safe_cardiac_gz_out) * params['cns_lim']
+                if cns_uses_sequence:
+                    cns_x = (1 - sequence.safe_cardiac_gx_out) * params['cns_lim']
+                    cns_y = (1 - sequence.safe_cardiac_gy_out) * params['cns_lim']
+                    cns_z = (1 - sequence.safe_cardiac_gz_out) * params['cns_lim']
                     stim_vec_cns = [cns_x, cns_y, cns_z]
 
                     for i in params['cns_idx']:
