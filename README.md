@@ -6,14 +6,35 @@ It provides tools for generating diffusion-encoding gradients in MRI that satisf
 
 ---
 
-## Requirements
+## Installation
 
-Stim-CODE builds on the GrOpt framework:
+Stim-CODE requires Python 3.10 or newer. Clone the repository, create a virtual
+environment, and install the dependencies from the repository root:
 
-- GrOpt toolbox:  
-  https://github.com/cmr-group/gropt-dev/
+```bash
+git clone https://github.com/ahannum/stim_code.git
+cd stim_code
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-Make sure GrOpt is installed and accessible in your Python environment before using this package.
+On Windows PowerShell, activate the environment with:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+The requirements pin `gropt==2.0.0rc11`, the pre-release version used by the
+demo, and include NumPy, SciPy, Matplotlib, PyPulseq, and JupyterLab. GrOpt is
+installed from PyPI; it does not need to be cloned separately.
+
+To open the demonstration locally, run:
+
+```bash
+jupyter lab Examples/demo_colab.ipynb
+```
 
 ---
 
@@ -21,7 +42,7 @@ Make sure GrOpt is installed and accessible in your Python environment before us
 
 A step-by-step demonstration is available:
 
-- Jupyter notebook: `Examples/demo.ipynb`  
+- Jupyter notebook: [`Examples/demo_colab.ipynb`](Examples/demo_colab.ipynb)
 - Google Colab (interactive): [Open in Colab](https://colab.research.google.com/github/ahannum/stim_code/blob/main/Examples/demo_colab.ipynb)
 
 The demo walks through:
