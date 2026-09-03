@@ -71,9 +71,9 @@ notebook can be replaced if desired.
 | `timeToTE` | 13.734 ms | Time reserved for the readout contribution to TE |
 | `nav_dur` | 0 ms | Navigator duration |
 
-The same file records 55 measured phase-encode lines (`Ny_meas`), three
+The same file also includes EPI timings for a 1.5 x 1.5 x 1.5 mm^3 protocol with 6/8 partial FOV including: 55 measured phase-encode lines (`Ny_meas`), 3
 navigators (`nNav`), the excitation and refocusing gradient definitions, and
-the Pulseq system settings. Its timing rasters are 10 us for gradients and
+the Pulseq system settings. The arrays are on a raster of 10 us for gradients and
 blocks, 1 us for RF, and 0.1 us for ADC samples; the RF dead time is 100 us,
 the RF ring-down time is 30 us, and the ADC dead time is 10 us.
 
