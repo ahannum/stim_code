@@ -103,6 +103,12 @@ class PNSCNS_SequenceBuilder:
     def _load_waveforms(self):
         # Gradient amplitudes are already in T/m; time rows are in seconds.
         mat = loadmat(self.waveform_file)
+        unit = mat.get('gradient_unit')
+        if unit is None or unit.size != 1 or unit.item() != 'T/m':
+            raise ValueError(
+                "Waveform file must declare gradient_unit='T/m'. "
+                "Convert gradient amplitudes to T/m before saving this marker."
+            )
         self.w90   = mat["wave_data_rf90"]
         self.w180  = mat["wave_data_rf180"]
         self.wEPI  = mat["wave_data_epi"]

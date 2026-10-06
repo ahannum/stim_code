@@ -244,7 +244,9 @@ class GetMinTE_Trap:
                 new_first_axis=axis
             ))
 
-            pns_thresh = np.asarray(self.pnsThresh[axis])
+            pns_thresh = np.atleast_1d(
+                self.pnsThresh if np.isscalar(self.pnsThresh) else self.pnsThresh[axis]
+            )
 
             # interpolate if needed
             if pns_thresh.size != safe.size:
@@ -270,7 +272,9 @@ class GetMinTE_Trap:
                 new_first_axis=axis
             ))
 
-            cns_thresh = np.asarray(self.cnsThresh[axis])
+            cns_thresh = np.atleast_1d(
+                self.cnsThresh if np.isscalar(self.cnsThresh) else self.cnsThresh[axis]
+            )
 
             # interpolate if needed
             if cns_thresh.size != safe_cardiac.size:
@@ -292,10 +296,7 @@ class GetMinTE_Trap:
         Returns (bval, pns_ok, cns_ok).
         """
         bval = compute_bvalue(g, self.dt, TE)
-        if self.pnsThresh is not None:
-            pns_ok, cns_ok = self._check_safe(g)
-        else:
-            pns_ok, cns_ok = True, True
+        pns_ok, cns_ok = self._check_safe(g)
         return bval, pns_ok, cns_ok
 
 
@@ -545,7 +546,7 @@ class GetMinTE_Trap:
             delayTE2_min = np.ceil((TE / 2 - self.rf_180_duration + self.rf_180_rfCenterInclDelay - self.T_readout) / gradRasterTime) * gradRasterTime
             
             if iteration % 20 == 0:
-                print('Trying TE={:.2f} ms: delayTE1_min={:.2f} ms, delayTE2_min={:.2f} ms, PNS={:.2f} ms'.format(TE*1e3, delayTE1_min*1e3, delayTE2_min*1e3, self.pnsThresh_value*1e3))
+                print('Trying TE={:.2f} ms: delayTE1_min={:.2f} ms, delayTE2_min={:.2f} ms'.format(TE*1e3, delayTE1_min*1e3, delayTE2_min*1e3))
             
             # Timing Checks 
             if np.ceil(np.max(self.gmax_range) / np.max(self.smax_range) / self.dt) * self.dt * 2 > delayTE2_min:
