@@ -26,9 +26,10 @@ On Windows PowerShell, activate the environment with:
 .venv\Scripts\Activate.ps1
 ```
 
-The requirements pin `gropt==2.0.0rc11`, the pre-release version used by the
-demo, and include NumPy, SciPy, Matplotlib, PyPulseq, and JupyterLab. GrOpt is
-installed from PyPI; it does not need to be cloned separately.
+The requirements pin `gropt==2.0.0rc16`, the pre-release version used by the
+demo, and include NumPy, SciPy, Matplotlib, and JupyterLab. GrOpt is
+installed from PyPI; it does not need to be cloned separately. PyPulseq is
+not required: the example gradient waveforms are stored directly in T/m.
 
 To open the demonstration locally, run:
 
@@ -68,18 +69,26 @@ notebook can be replaced if desired.
 | `rf_90_rfCenterInclDelay` | 1.865 ms | Duration to Center of Excitation |
 | `rf_180_duration` | 7.070 ms | Total Refocusing pulse duration |
 | `rf_180_rfCenterInclDelay` | 3.54075 ms | Timing of Refocusing RF center |
-| `timeToTE` | 13.734 ms | Duration from end of diffusion-encoding to middle of readout |
+| `T_readout` | 13.734 ms | Duration from end of diffusion-encoding to middle of readout |
 | `nav_dur` | 0 ms | Duration of three line reference Navigator |
 
-The same file also includes EPI timings for a 1.5 x 1.5 x 1.5 mm^3 protocol with 6/8 partial FOV including, the excitation and refocusing gradient definitions, and
-the Pulseq system settings.
+The timing file contains only these six scalars used by the final notebook demo.
+Unused gradient definitions, EPI counts, and Pulseq system settings have been removed.
 
 `diffusion_timing_parameters_waveforms.mat` contains four-axis Pulseq waveform
 data (`gx`, `gy`, `gz`, and RF) for the following sequence blocks in order to
-construct the envelope constraint based on these waveforms. 
+construct the envelope constraint based on these waveforms: `wave_data_rf90`
+(excitation), `wave_data_rf180` (refocusing), `wave_data_epi` (readout), and
+`wave_data_fatsat` (fat saturation). Unused RF time/frequency/phase metadata has
+been removed. Time and RF samples are preserved; gradient amplitudes are
+stored in T/m.
 
-Gradient amplitudes in the waveform file use Pulseq's Hz/m units and
-are converted to mT/m when loaded by `utils/safe_vec_generator.py`.
+Gradient amplitudes in the waveform file are stored directly in T/m, matching
+the optimization and SAFE inputs. `utils/safe_vec_generator.py` loads them
+without unit conversion. Each variable
+is a 1 x 4 MATLAB cell array ordered `[gx, gy, gz, RF]`; each cell contains
+a 2 x N array of block-relative times in seconds and amplitudes (RF in Hz).
+The final notebook section documents every retained variable and its use.
 
 ---
 

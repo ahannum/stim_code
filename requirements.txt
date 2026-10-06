@@ -4,9 +4,8 @@ scipy>=1.10
 matplotlib>=3.7
 
 # MRI waveform design dependencies
-# GrOpt 2.0 is currently a pre-release; pin the version used by the demo.
-gropt==2.0.0rc11
-pypulseq>=1.4
+# Pin the GrOpt 2.0 pre-release used by the Colab demo (native diffusion API).
+gropt==2.0.0rc16
 
 # Used to run the example notebook locally
 jupyterlab>=4.0

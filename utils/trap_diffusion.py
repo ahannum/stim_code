@@ -132,7 +132,7 @@ class GetMinTE_Trap:
         self.targetBval = params['bvalue']
         self.rf_90_duration = params['T_90']
         self.rf_180_duration = params['T_180']
-        self.timeToTE = params['T_readout']
+        self.T_readout = params['T_readout']
 
         self.pnsThresh = params['pns_lim']
         self.cnsThresh = params['cns_lim']
@@ -144,7 +144,7 @@ class GetMinTE_Trap:
         self.cns_idx = params['cns_idx']
 
 
-        if self.safe_params_cardiac is None:
+        if self.safe_params_cardiac is None and self.cnsThresh is not None:
             self.safe_params_cardiac = self.safe_params
             print("Warning: cns_params not provided, using pns_params for both PNS and CNS checks.")
 
@@ -164,7 +164,7 @@ class GetMinTE_Trap:
         self.rf_90_duration = np.ceil(self.rf_90_duration / self.dt) * self.dt
         self.rf_180_duration = np.ceil(self.rf_180_duration / self.dt) * self.dt
         self.rf_180_rfCenterInclDelay = np.ceil(self.rf_180_rfCenterInclDelay / self.dt) * self.dt
-        self.timeToTE = np.ceil(self.timeToTE / self.dt) * self.dt
+        self.T_readout = np.ceil(self.T_readout / self.dt) * self.dt
         self.maxTE = np.ceil(self.maxTE / self.dt) * self.dt
 
 
@@ -222,6 +222,7 @@ class GetMinTE_Trap:
         Uses axis-specific time-varying thresholds:
         self.pnsThresh = [pns_x, pns_y, pns_z]
         self.cnsThresh = [cns_x, cns_y, cns_z]
+        A None threshold disables that check independently.
 
         Returns:
             (pns_ok, cns_ok): booleans indicating if all axes pass.
@@ -235,7 +236,8 @@ class GetMinTE_Trap:
         # -------------------------
         pns_ok_all = []
 
-        for axis in self.pns_idx:
+        pns_axes = self.pns_idx if self.pnsThresh is not None else []
+        for axis in pns_axes:
             safe = np.array(gropt.gropt_wrapper.get_SAFE(
                 g, self.dt,
                 safe_params=self.safe_params,
@@ -260,7 +262,8 @@ class GetMinTE_Trap:
         # -------------------------
         cns_ok_all = []
 
-        for axis in self.cns_idx:
+        cns_axes = self.cns_idx if self.cnsThresh is not None else []
+        for axis in cns_axes:
             safe_cardiac = np.array(gropt.gropt_wrapper.get_SAFE(
                 g, self.dt,
                 safe_params=self.safe_params_cardiac,
@@ -526,7 +529,7 @@ class GetMinTE_Trap:
         gradRasterTime = self.dt
         TE = max([
             np.ceil((self.rf_90_duration + self.rf_180_rfCenterInclDelay) / gradRasterTime) * gradRasterTime,
-            np.ceil((self.rf_180_duration - self.rf_180_rfCenterInclDelay + self.timeToTE) / gradRasterTime) * gradRasterTime
+            np.ceil((self.rf_180_duration - self.rf_180_rfCenterInclDelay + self.T_readout) / gradRasterTime) * gradRasterTime
         ]) * 2
         
         if start_TE is not None:
@@ -539,7 +542,7 @@ class GetMinTE_Trap:
             
             
             delayTE1_min = np.ceil((TE / 2 - self.rf_90_duration - self.rf_180_rfCenterInclDelay) / gradRasterTime) * gradRasterTime
-            delayTE2_min = np.ceil((TE / 2 - self.rf_180_duration + self.rf_180_rfCenterInclDelay - self.timeToTE) / gradRasterTime) * gradRasterTime
+            delayTE2_min = np.ceil((TE / 2 - self.rf_180_duration + self.rf_180_rfCenterInclDelay - self.T_readout) / gradRasterTime) * gradRasterTime
             
             if iteration % 20 == 0:
                 print('Trying TE={:.2f} ms: delayTE1_min={:.2f} ms, delayTE2_min={:.2f} ms, PNS={:.2f} ms'.format(TE*1e3, delayTE1_min*1e3, delayTE2_min*1e3, self.pnsThresh_value*1e3))
@@ -601,7 +604,7 @@ class GetMinTE_Trap:
             
             g = self.build_waveform(diffGrad, delayTE1_min, delayTE2_min, timings=timings, idle_pre=idel_pre, idle_post_diff=idle_post_diff)
             t = np.arange(g.size) * self.dt
-            TE = g.size * self.dt + self.timeToTE
+            TE = g.size * self.dt + self.T_readout
             b, pns_ok, cns_ok = self.evaluate_waveform(g, TE)
             
             if terminate_early:
@@ -678,7 +681,7 @@ class GetMinTE_Trap:
                         continue
                     
                     g_test = self.build_waveform(diffGrad_cand, delayTE1_min, delayTE2_min, timings=timings_cand, idle_pre=idle_pre_cand, idle_post_diff=idle_post_diff_cand)
-                    TE_test = g_test.size * self.dt + self.timeToTE
+                    TE_test = g_test.size * self.dt + self.T_readout
                     
                     
                     b_test = compute_bvalue(g_test, self.dt, TE_test)
@@ -765,7 +768,7 @@ class GetMinTE_Trap:
         # Initial minimum TE based on RF durations
         TE_min = max([
             np.ceil((self.rf_90_duration + self.rf_180_rfCenterInclDelay) / gradRasterTime) * gradRasterTime,
-            np.ceil((self.rf_180_duration - self.rf_180_rfCenterInclDelay + self.timeToTE) / gradRasterTime) * gradRasterTime
+            np.ceil((self.rf_180_duration - self.rf_180_rfCenterInclDelay + self.T_readout) / gradRasterTime) * gradRasterTime
         ]) * 2
         if start_TE is not None:
             TE_min = max(TE_min, start_TE)
@@ -788,16 +791,22 @@ class GetMinTE_Trap:
 
             iteration += 1
             delayTE1_min = np.ceil((TE / 2 - self.rf_90_duration - self.rf_180_rfCenterInclDelay) / gradRasterTime) * gradRasterTime
-            delayTE2_min = np.ceil((TE / 2 - self.rf_180_duration + self.rf_180_rfCenterInclDelay - self.timeToTE) / gradRasterTime) * gradRasterTime
+            delayTE2_min = np.ceil((TE / 2 - self.rf_180_duration + self.rf_180_rfCenterInclDelay - self.T_readout) / gradRasterTime) * gradRasterTime
 
 
             gparams = gropt.GroptParams()
             gparams.diff_init(T_90=self.rf_90_duration - self.rf_180_rfCenterInclDelay, 
-                                T_180=self.rf_180_rfCenterInclDelay, T_readout=self.timeToTE, TE=TE, dt=self.dt)
+                                T_180=self.rf_180_rfCenterInclDelay, T_readout=self.T_readout, TE=TE, dt=self.dt)
             N = gparams.N
 
-            self.pnsThresh = [self.pnsThresh_value * np.ones(N), self.pnsThresh_value* np.ones(N), self.pnsThresh_value* np.ones(N)]
-            self.cnsThresh = [self.pnsThresh_value * np.ones(N), self.pnsThresh_value * np.ones(N), self.pnsThresh_value * np.ones(N)]
+            self.pnsThresh = (
+                [np.full(N, self.pnsThresh_value) for _ in range(3)]
+                if self.pnsThresh_value is not None else None
+            )
+            self.cnsThresh = (
+                [np.full(N, self.cnsThresh_value) for _ in range(3)]
+                if self.cnsThresh_value is not None else None
+            )
 
             if iteration % 1 == 0:
                 #print('Trying TE={:.2f} ms: delayTE1_min={:.2f} ms, delayTE2_min={:.2f} ms'.format(TE*1e3, delayTE1_min*1e3, delayTE2_min*1e3))
@@ -847,7 +856,7 @@ class GetMinTE_Trap:
 
                     g_test = self.build_waveform(diffGrad_cand, delayTE1_min, delayTE2_min,
                                                 timings=timings_cand, idle_pre=idle_pre_cand, idle_post_diff=idle_post_diff_cand)
-                    TE_test = g_test.size * self.dt + self.timeToTE
+                    TE_test = g_test.size * self.dt + self.T_readout
                     b_test = compute_bvalue(g_test, self.dt, TE_test)
                     if b_test < self.targetBval:
                         continue

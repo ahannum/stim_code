@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 from scipy.interpolate import interp1d
-import pypulseq as pp
 import gropt
 
 
@@ -93,7 +92,7 @@ class PNSCNS_SequenceBuilder:
         self.center90   = data['rf_90_rfCenterInclDelay'][0][0]
         self.center180  = data['rf_180_rfCenterInclDelay'][0][0]
         self.nav_dur    = data['nav_dur'][0][0]
-        self.timeToTE   = data['timeToTE'][0][0]
+        self.T_readout   = data['T_readout'][0][0]
         self.T90        = (self.rf90_dur - self.center90 + self.nav_dur)
         self.T180       = self.rf180_dur
 
@@ -102,6 +101,7 @@ class PNSCNS_SequenceBuilder:
     # Load waveform file (including optional fatsat)
     # ----------------------------------------------------------
     def _load_waveforms(self):
+        # Gradient amplitudes are already in T/m; time rows are in seconds.
         mat = loadmat(self.waveform_file)
         self.w90   = mat["wave_data_rf90"]
         self.w180  = mat["wave_data_rf180"]
@@ -113,14 +113,11 @@ class PNSCNS_SequenceBuilder:
     # Extract and interpolate RF/EPI/FAT blocks
     # ----------------------------------------------------------
     def _extract(self, W):
+        """Extract block-relative times [s], gradients [T/m], and normalized RF."""
         t_x, gx = W[0,0][0,:], W[0,0][1,:]
         t_y, gy = W[0,1][0,:], W[0,1][1,:]
         t_z, gz = W[0,2][0,:], W[0,2][1,:]
         t_rf, rf = W[0,3][0,:], W[0,3][1,:]
-
-        gx = pp.convert.convert(gx, from_unit = 'Hz/m', to_unit='mT/m') * 1e-3
-        gy = pp.convert.convert(gy, from_unit = 'Hz/m', to_unit='mT/m') * 1e-3
-        gz = pp.convert.convert(gz, from_unit = 'Hz/m', to_unit='mT/m') * 1e-3
 
         if rf.size > 0:
             rf = np.abs(rf)/np.max(np.abs(rf))
@@ -181,7 +178,7 @@ class PNSCNS_SequenceBuilder:
 
         dt = self.dt_in
         delayTE1 = np.ceil((self.TE/2 - self.T90 - self.center180)/dt)*dt
-        delayTE2 = np.ceil((self.TE/2 - self.T180 + self.center180 - self.timeToTE)/dt)*dt
+        delayTE2 = np.ceil((self.TE/2 - self.T180 + self.center180 - self.T_readout)/dt)*dt
 
         self.z1 = np.zeros(int(delayTE1/dt))
         self.z2 = np.zeros(int(delayTE2/dt))
