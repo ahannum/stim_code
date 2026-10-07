@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stim-code"
+version = "1.0.0"
+description = "PNS and CNS constraint-optimized diffusion encoding"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "gropt==2.0.0rc16",
+]
+
+[project.optional-dependencies]
+demo = ["jupyterlab>=4.0"]
+
+[project.urls]
+Repository = "https://github.com/ahannum/stim_code"
+Issues = "https://github.com/ahannum/stim_code/issues"
+
+# Preserve the top-level imports used by the existing notebook and utilities.
+[tool.setuptools]
+package-dir = {"" = "utils"}
+packages = []
+py-modules = ["safe_vec_generator", "stim_code_utils", "trap_diffusion", "plot_utils"]

@@ -24,6 +24,18 @@ python -m pip install -r requirements.txt
 The requirements pin `gropt==2.0.0rc16`, the pre-release version used by the
 demo, and include NumPy, SciPy, Matplotlib, and JupyterLab. 
 
+Alternatively, install Stim-CODE and the notebook dependencies using the
+package metadata in `pyproject.toml`:
+
+```bash
+python -m pip install -e '.[demo]'
+```
+
+For the core utilities without JupyterLab, use `python -m pip install -e .`.
+The example notebook and `.mat` files remain in the cloned repository.
+The Python package version is declared as `1.0.0` in `pyproject.toml`; a matching
+GitHub release must be created separately with the tag `v1.0.0`.
+
 To open the demo locally, run:
 
 ```bash
